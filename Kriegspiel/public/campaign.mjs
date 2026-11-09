@@ -34,7 +34,7 @@ function labeledSite(s,side,kind,label,index) {
   return legal[offset%legal.length]?.id;
 }
 export function initializeCampaign(s,rng) {
-  if (!Object.keys(s.optional).length) return;
+  if (!Object.keys(s.optional).some(key=>key!=='initiative')) return;
   const o = s.optional;
   const sites = [];
   for (const side of sides) for (const [kind,labels] of Object.entries(markers[side])) {

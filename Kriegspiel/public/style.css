@@ -1608,3 +1608,22 @@ body.lobby .command {
 .campaign-map-mark, .stack-count { text-anchor:middle; font-weight:800; font-size:20px; fill:#fff8e6;
   stroke:#251e16; stroke-width:5px; paint-order:stroke; pointer-events:none; }
 .stack-edge { fill:#272821; stroke:#fff8e6; stroke-width:2px; }
+
+
+#field-report { width:min(850px, 94vw); }
+.field-report-body { max-height:60dvh; overflow:auto; margin:1rem 0; padding:1rem; border:1px solid var(--line); }
+.field-report-text { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.55; }
+.field-report-section { font-size:1.15em; }
+.field-report-body pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+.field-report-copy { position:absolute; inset:0; width:1px; height:1px; opacity:0; }
+
+.field-report-section.level-3 { color:var(--ink); font-size:1.08em; }
+.field-report-section.level-4 { font-size:1em; }
+
+#field-report-views[hidden], #field-replay[hidden], #field-report-body[hidden] { display:none; }
+#replay-step { width:100%; }
+#replay-position { align-self:center; }
+#replay-order { overflow-wrap:anywhere; }
+.replay-board svg { display:block; width:100%; max-height:52dvh; margin:auto; }
+.replay-board .hex { cursor:default; }
+.replay-route { fill:none; stroke:#edb955; stroke-width:10; stroke-linecap:round; stroke-linejoin:round; }

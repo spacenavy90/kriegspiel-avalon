@@ -19,9 +19,9 @@ Solitaire and hot-seat games resume when you reopen the same browser and address
 
 ## On the field
 
-Choose a long- or short-edge join. Set Red and Blue to **Upright**, **Rotate 180°**, or **Random at start** independently.
+New tables default to **Color redraw** and **Random at start** for both board halves. Choose a long- or short-edge join. Set Red and Blue to **Upright**, **Rotate 180°**, or **Random at start** independently.
 
-Select **Review rules & start** to confirm setup. New tables start with Game I rules until you save your own under **Settings → Default game rules**. These defaults stay in this browser. Individual games can override them. Open a Game II section to choose its modules. Setup shows missing prerequisites without enabling them automatically. The mandatory-retreat table convention remains separate. Select the mode label at the command desk to inspect the confirmed rules during play, including after joining a LAN room.
+Select **Review rules & start** to confirm setup. New tables use Game I rules with fixed initiative. The first side is drawn once at setup. To use printed Game I initiative, select **Roll each turn** in the advanced rules. Save your own defaults under **Settings → Default game rules**. These defaults stay in this browser. Individual games can override them. Open a Game II section to choose its modules. Setup shows missing prerequisites without enabling them automatically. The mandatory-retreat table convention remains separate. Select the mode label at the command desk to inspect the confirmed rules during play, including after joining a LAN room.
 
 Before locking deployment, select a placed division and choose a new highlighted hex. Recall all returns the unlocked army to its roster. In standard solitaire, quick deployment opens a review of both armies and recall clears both. Select a stack to choose which division to move.
 
@@ -78,3 +78,7 @@ The three map sets are the classic boards from `materialsUS.pdf`, the color redr
 The rulebook and classic map and counter art come from [Christian Holm Christensen’s Kriegspiel project](https://gitlab.com/wargames_tex/kriegspiel_tex) under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The classic maps and counters were cropped, resized, and converted for browser play. The maps were also tinted and digitized for the rules engine. Rulebook previews are rendered from the supplied PDF. The local bundle also uses cropped vintage card scans.
 
 Run `node check.mjs` for the core and Game II engine checks.
+
+## Share a match
+
+After the result, choose **View field report**. Use **Board replay** in the dialog to step through the recorded orders on the map, or choose **Copy to clipboard** or **Download report**. The exported Markdown lists the map and orientations, setup and deployment, numbered orders with plain-language descriptions, battle events, final city control, and replay data. Private orders become part of the export when the game ends. Games started before this feature can export their remaining field notes.

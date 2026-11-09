@@ -1,3 +1,4 @@
+import { recordOrder, startRecord } from './field-report.mjs';
 import { mapsAvailable } from './distribution.mjs';
 export { mapsAvailable } from './distribution.mjs';
 import { maps } from './maps.mjs';
@@ -166,7 +167,7 @@ export function createGame(options = {}, rng = Math.random) {
     return [side, selected === 'random' ? rng()<.5 : selected === undefined ? side==='B' && layout==='standard' : selected === 'rotated' || selected === true];
   }));
   const retreatRule = options.retreatRule === 'mandatory' ? 'mandatory' : 'printed';
-  const rules = normalizeOptions(options.optional);
+  const rules = { initiative:'random', ...normalizeOptions(options.optional) };
   const lossRule = Object.hasOwn(lossRules,options.lossRule) ? options.lossRule : 'whole';
   const problems = ruleErrors(rules,lossRule);
   if (problems.length) throw new Error(problems.join(' '));
@@ -183,6 +184,7 @@ export function createGame(options = {}, rng = Math.random) {
     battles:[], battle:null, winner:null, reason:null, rev:0, log:[]
   };
   initializeCampaign(game,rng);
+  game.record = startRecord(game);
   return game;
 }
 
@@ -216,12 +218,16 @@ export function playerView(s, side) {
     if (!visible) v.control = Object.fromEntries(Object.entries(s.control).filter(([,owner]) => owner === side));
   }
   if (s.phase === 'tactics') v.battle = { ...s.battle, locked:s.battle.off !== null, off:null, def:null };
+  if (s.phase==='move'&&s.active===side) v.resettableMoves = [...new Set((s.movementOrders??[])
+    .filter(({action})=>unitMovement.has(action.type)).map(({action})=>action.unit))];
+  delete v.movementOrders;
   delete v.movementStart;
   delete v.creditStart;
   delete v.controlStart;
   delete v.capturedStart;
   delete v.logStart;
   delete v.campaignStart;
+  if (s.phase!=='over') delete v.record;
   return campaignView(v,side);
 }
 
@@ -591,6 +597,7 @@ function beginSide(s,side) {
       v.corps===u.corps&&distance(board.cells[u.pos],board.cells[v.pos])<=3));
   }
   if (s.turn>=4) s.credit[side] = Math.min(s.credit[side]+1,reserve(s,side).length);
+  s.movementOrders = [];
   s.movementStart = structuredClone(s.units);
   s.controlStart = { ...s.control };
   s.capturedStart = { ...s.captured };
@@ -602,7 +609,7 @@ function beginTurn(s,rng) {
   s.turn++;
   s.half = 0;
   campaignTurn(s,rng);
-  if (!s.optional?.initiative || !s.first) s.first = sides.includes(s.optional?.initiative) ? s.optional.initiative : pickSide(rng);
+  if (!s.optional?.initiative || s.optional.initiative==='turn' || !s.first) s.first = sides.includes(s.optional?.initiative) ? s.optional.initiative : pickSide(rng);
   note(s,'Turn '+s.turn+' · '+name(s.first)+' has initiative.');
   beginSide(s,s.first);
 }
@@ -810,7 +817,60 @@ function resolveTactics(s) {
   afterLosses(s);
 }
 
+const unitMovement = new Set(['move','special','airlift']);
+
 export function act(s, who, action, rng = Math.random) {
+  return s.record ? recordOrder(s,who,action,rng,applyTrackedOrder) : applyTrackedOrder(s,who,action,rng);
+}
+
+function applyTrackedOrder(s,who,action,rng) {
+  if (s.phase!=='move'||!s.movementOrders) return applyOrder(s,who,action,rng);
+  const {turn,half} = s;
+  const draws = [];
+  const result = applyOrder(s,who,action,()=>{
+    const value = rng();
+    draws.push(value);
+    return value;
+  });
+  if (s.turn===turn&&s.half===half) {
+    if (s.phase!=='move') delete s.movementOrders;
+    else if (action.type!=='reset-move'&&action.type!=='reset-unit-move')
+      s.movementOrders.push({action:structuredClone(action),draws});
+  }
+  return result;
+}
+
+function resetMovement(s,who) {
+  s.units = structuredClone(s.movementStart);
+  s.control = {...s.controlStart};
+  s.captured = {...s.capturedStart};
+  s.credit[who] = s.creditStart;
+  s.log = [...s.logStart];
+  s.trails = [];
+  if (s.campaignStart) s.campaign = structuredClone(s.campaignStart);
+}
+
+function resetUnitMovement(s,who,unit) {
+  const orders = s.movementOrders ?? [];
+  const remaining = orders.filter(({action})=>action.unit!==unit||!unitMovement.has(action.type));
+  assert(remaining.length<orders.length,'This division has no movement to reset.');
+  const trial = structuredClone({...s,record:null,movementOrders:remaining});
+  resetMovement(trial,who);
+  for (const {action,draws} of remaining) {
+    let i = 0;
+    try {
+      applyOrder(trial,who,action,()=>draws[i++]);
+      assert(i===draws.length&&trial.phase==='move','The order could not be reproduced.');
+    } catch {
+      const division = action.unit ? ' for '+action.unit : '';
+      throw new Error('Another order'+division+' depends on that move. Reset the dependent move first.');
+    }
+  }
+  Object.assign(s,{...trial,record:s.record,rev:s.rev});
+  note(s,unit+' returned to its position before movement.');
+}
+
+function applyOrder(s, who, action, rng) {
   assert(who === actor(s) && who, 'It is the other faction’s decision.');
   assert(action && typeof action.type === 'string', 'Choose an action.');
   const unit = s.units.find(u => u.id === action.unit);
@@ -926,15 +986,14 @@ export function act(s, who, action, rng = Math.random) {
       s.credit[who]--;
       note(s,name(who)+' reinforced '+to.label+' with '+unit.id+'.');
       break;
+    case 'reset-unit-move':
+      assert(s.phase==='move','Movement is already locked.');
+      resetUnitMovement(s,who,action.unit);
+      break;
     case 'reset-move':
-      assert(s.phase==='move', 'Movement is already locked.');
-      s.units = structuredClone(s.movementStart);
-      s.control = { ...s.controlStart };
-      s.captured = { ...s.capturedStart };
-      s.credit[who] = s.creditStart;
-      s.log = [...s.logStart];
-      s.trails = [];
-      if (s.campaignStart) s.campaign = structuredClone(s.campaignStart);
+      assert(s.phase==='move','Movement is already locked.');
+      resetMovement(s,who);
+      s.movementOrders = [];
       break;
     case 'resolve-deadlock':
     case 'end-move': {

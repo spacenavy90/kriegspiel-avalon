@@ -41,7 +41,7 @@ export const optionalSections = [
     ['blockedInvasion','25.1','Blocked invasions','An invasion fails when its extra enemy contacts cannot all be attacked.'],
     ['limitedInvasion','25.2','Limited invasion movement','Limit landings to one follow-up hex or the defended beach itself.'],
     ['strictInvasion','25.3','Connected waterway','A landing beach must connect by waterway to the departure city.'],
-    ['initiative','26.1','Fixed initiative','Keep the same first faction for the entire game.',{random:'Random at setup',R:'Red first',B:'Blue first'}],
+    ['initiative','26.1','Initiative','Choose a fixed first side or roll again each full turn under printed Game I.',{random:'Random at setup (fixed)',R:'Red first (fixed)',B:'Blue first (fixed)',turn:'Roll each turn (printed Game I)'}],
     ['stacking','26.2','Two-unit stacking','Up to two friendly ground units can share a hex.'],
     ['strategic','26.3','Strategic movement','Eligible divisions gain 2 MF when they stay out of combat.'],
     ['command','26.4','Command and control','Divisions beyond three hexes from their corps lose 1 MF.']

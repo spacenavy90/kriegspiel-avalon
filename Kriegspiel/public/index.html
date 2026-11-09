@@ -30,7 +30,7 @@
     <div id="table" class="table">
       <section class="map-panel" aria-label="Game board">
         <div class="map-toolbar">
-          <div class="map-caption"><span class="grid-mark" aria-hidden="true">⌗</span><div><strong id="map-name">Classic boards</strong><small id="map-status">STANDARD FRONT</small></div></div>
+          <div class="map-caption"><span class="grid-mark" aria-hidden="true">⌗</span><div><strong id="map-name">Color redraw</strong><small id="map-status">STANDARD FRONT</small></div></div>
           <div class="map-tools">
             <button data-do="zoc" id="zoc" aria-pressed="false" title="Show zones of control">ZOC</button>
             <button data-do="trails" id="trails" aria-pressed="true" title="Toggle movement trails">Trails</button>
@@ -65,7 +65,7 @@
       <button class="secondary" data-do="rule">Read the full rulebook</button>
       <details open><summary>Play a turn</summary><ol>
         <li>Deploy 14 Red and 13 Blue divisions on their own map halves. Remaining units become reserves.</li>
-        <li>Initiative is randomized every full turn. Starting on turn 4, one reserve per side per turn becomes available in that side’s capital. An enemy in any capital hex blocks arrival.</li>
+        <li>By default, initiative is drawn once and the same side goes first each turn. Choose Roll each turn in setup for printed Game I initiative. Starting on turn 4, one reserve per side per turn becomes available in that side’s capital. An enemy in any capital hex blocks arrival.</li>
         <li>Move any divisions up to their movement allowance. One ground unit fits in a hex. A unit must stop when entering an enemy zone of control (ZOC) and must disengage before moving between enemy zones.</li>
         <li>Every engaged division must take part in one battle. All attackers in a battle must border all its defenders, and the defending hexes must border each other. Assign battles or use the suggested plan.</li>
         <li>Choose tactics in secret. Read the combat result, pay losses, resolve any retreats, and then advance. The second side follows the same sequence.</li>
@@ -130,7 +130,7 @@
         </section>
       </div>
       <p id="setup-errors" role="status" class="notice" hidden></p>
-      <div class="action-row setup-actions"><button type="button" class="secondary" data-do="close-game-rules" id="setup-cancel">Cancel</button><button type="button" class="secondary" data-do="reset-rules" id="reset-rules" hidden>Use Game I defaults</button><button type="submit" class="primary" id="setup-apply">Start game</button></div>
+      <div class="action-row setup-actions"><button type="button" class="secondary" data-do="close-game-rules" id="setup-cancel">Cancel</button><button type="button" class="secondary" data-do="reset-rules" id="reset-rules" hidden>Restore app defaults</button><button type="submit" class="primary" id="setup-apply">Start game</button></div>
     </form>
   </dialog>
   <dialog id="preferences" aria-label="Table settings">
@@ -169,6 +169,39 @@
     <div class="reader-scroll" id="reader-scroll" tabindex="0" aria-label="Rulebook page image">
       <img id="reader-image" width="1020" height="1320" alt="">
     </div>
+  </dialog>
+  <dialog id="field-report" aria-labelledby="field-report-title">
+    <div class="manual-head">
+      <h2 id="field-report-title">Kriegspiel Field Report</h2>
+      <form method="dialog"><button aria-label="Close field report">✕</button></form>
+    </div>
+    <div class="action-row" id="field-report-views" hidden aria-label="Field report views">
+      <button type="button" class="secondary" data-do="report-view" aria-pressed="true">Report</button>
+      <button type="button" class="secondary" data-do="replay-view" aria-pressed="false">Board replay</button>
+    </div>
+    <div id="field-report-body" class="field-report-body" tabindex="0" aria-label="Match report"></div>
+    <section id="field-replay" class="field-report-body" aria-label="Board replay" hidden>
+      <div class="action-row">
+        <button type="button" class="secondary" data-do="replay-first">Start</button>
+        <button type="button" class="secondary" data-do="replay-prev">Previous order</button>
+        <button type="button" class="secondary" data-do="replay-next">Next order</button>
+        <button type="button" class="secondary" data-do="replay-last">End</button>
+        <output id="replay-position" for="replay-step"></output>
+      </div>
+      <input id="replay-step" type="range" min="0" step="1" value="0" aria-label="Replay order">
+      <p id="replay-order" aria-live="polite"></p>
+      <div id="replay-board" class="replay-board"></div>
+    </section>
+    <div class="action-row">
+      <button class="secondary" data-do="copy-report">Copy to clipboard</button>
+      <button class="primary" data-do="export-report">Download report</button>
+      <span id="field-report-status" role="status"></span>
+    </div>
+  </dialog>
+  <dialog id="reset-movement" aria-labelledby="reset-movement-title">
+    <div class="manual-head"><h2 id="reset-movement-title">Reset all moves?</h2></div>
+    <p>This returns the active side to the start of its movement phase.</p>
+    <form method="dialog" class="action-row"><button autofocus>Cancel</button><button value="reset" class="danger">Reset all moves</button></form>
   </dialog>
   <dialog id="new-table" aria-label="Start a new table">
     <div class="manual-head"><div><p class="eyebrow">TABLE RESET</p><h2>Start a new table?</h2></div></div>

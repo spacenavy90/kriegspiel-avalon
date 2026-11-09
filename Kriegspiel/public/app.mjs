@@ -1,3 +1,4 @@
+import { createReplay, formatFieldReport } from './field-report.mjs';
 import {
   act, actor, advanceMF, advanceUnits, attackTactics, battleDraft, battleOdds, combatOddsLabel, combatResult, boardFor, boardOf, canUndoAction, cityProgress, createGame, defensive, deploymentHexes,
   enemy, layouts, lossCost, lossRules, name, oddsLabels, offensive, orientations, paths, pieces, playerView, quota,
@@ -61,11 +62,12 @@ let serverActor = null;
 let lan = null;
 let connected = false;
 let addresses = [];
-const coreRules = { setup:'free', terrain:false, retreatRule:'printed', lossRule:'whole', optional:{} };
-let ruleDefaults = { ...coreRules,...getLocal(rulesKey) };
+const coreRules = { setup:'free', terrain:false, retreatRule:'printed', lossRule:'whole', optional:{initiative:'random'} };
+const savedRuleDefaults = getLocal(rulesKey);
+let ruleDefaults = { ...coreRules,...savedRuleDefaults,optional:{...coreRules.optional,...savedRuleDefaults?.optional} };
 let editingDefaults = false;
-let choice = { mode:'solo', map:'classic', layout:'standard',
-  rotations:{R:'upright',B:'rotated'}, human:'R',difficulty:'standard' };
+let choice = { mode:'solo', map:'color', layout:'standard',
+  rotations:{R:'random',B:'random'}, human:'R',difficulty:'standard' };
 let selected = null;
 let special = false;
 let attacks = [];
@@ -190,7 +192,7 @@ function command(s, who, enabled) {
   if (!s) return renderSetup();
   if (blocked) return phaseHead('HOT-SEAT','Pass the screen','The next decision is private.');
   const board = boardOf(s), u = find(s,selected);
-  if (s.phase==='over') return phaseHead('ENGAGEMENT COMPLETE',s.winner==='draw'?'Draw':name(s.winner)+' wins',s.reason)+buttons('New table','new','primary wide');
+  if (s.phase==='over') return phaseHead('ENGAGEMENT COMPLETE',s.winner==='draw'?'Draw':name(s.winner)+' wins',s.reason)+actionRow(buttons('View field report','view-report'),buttons('New table','new','primary'));
   const turn = s.turn ? 'TURN '+s.turn+' / '+(s.half===0?'FIRST':'SECOND')+' HALF' : 'INITIAL DEPLOYMENT';
   const top = invite();
   if (!enabled) {
@@ -229,7 +231,8 @@ function command(s, who, enabled) {
       (u ? infoCard(u,board) : '<div class="waiting"><p>Awaiting movement orders.</p></div>')+
       (canSpecial?buttons(special?'Return to ground movement':u.type==='ABI'?'Set parachute drop':'Launch invasion','special-mode'):'')+
       (s.credit[who]?'<h3>Reinforcements · '+s.credit[who]+'</h3>'+(ready?unitButtons(available,u?[u.id]:[]):'<p>Capital entry is blocked. Reinforcements wait in reserve.</p>'):'')+
-      actionRow(buttons('Reset moves','reset-move'),buttons('End movement','end-move','primary'))+
+      (s.resettableMoves?.includes(u?.id)?buttons('Reset '+u.id+' movement','reset-unit-move'):'')+
+      actionRow(buttons('Reset all moves','confirm-reset-move'),buttons('End movement','end-move','primary'))+
       (s.inheritedDeadlock?'<details class="deadlock"><summary>Inherited engagement deadlock</summary><p>Try repositioning first. If a complete legal plan remains impossible, this ruling keeps the largest set of legal engagements and reports any exemptions.</p>'+
         buttons('Resolve remaining contacts','resolve-deadlock')+'</details>':'');
   }
@@ -330,16 +333,18 @@ function movementTrails(s,board) {
   return '<defs>'+markers+'</defs><g aria-hidden="true" pointer-events="none">'+lines+'</g>';
 }
 
-function drawBoard(s,board) {
-  const units = Object.groupBy(s && !blocked ? pieces(s) : [],u=>u.pos);
-  const active = s && !blocked;
-  const r = active && showZone ? zone(s,'R') : new Set();
-  const b = active && showZone ? zone(s,'B') : new Set();
-  const needed = new Set(draft ? [...draft.attackers,...draft.defenders] : []);
+function drawBoard(s,board,preview=null) {
+  const viewing = !!preview;
+  const hidden = !viewing && blocked;
+  const units = Object.groupBy(s && !hidden ? pieces(s) : [],u=>u.pos);
+  const active = s && !hidden;
+  const r = active && !viewing && showZone ? zone(s,'R') : new Set();
+  const b = active && !viewing && showZone ? zone(s,'B') : new Set();
+  const needed = new Set(!viewing&&draft ? [...draft.attackers,...draft.defenders] : []);
   const inBattle = new Set(active&&s.battle?[...s.battle.a,...s.battle.d]:[]);
   const planned = new Set(active?s.battles.flatMap(g=>[...g.a,...g.d]):[]);
-  const picks = new Set([selected,...attacks,...defenses,...Object.keys(losses)]);
-  if (!board.cells[hit]) hit = Object.keys(board.cells)[0];
+  const picks = new Set(viewing?[preview.entry?.action.unit]:[selected,...attacks,...defenses,...Object.keys(losses)]);
+  if (!viewing && !board.cells[hit]) hit = Object.keys(board.cells)[0];
   const maps = board.halves.map(half => {
     const width = 1000;
     const height = board.rows*h/(board.cols===10?2:1);
@@ -349,17 +354,20 @@ function drawBoard(s,board) {
   }).join('');
   const tiles = Object.values(board.cells).map(cell=>{
     const stack = units[cell.id] ?? [];
-    const u = stack.find(v=>v.id===selected) ?? stack.find(v=>v.type!=='LOG') ?? stack[0], id = u?.id;
+    const u = stack.find(v=>v.id===(viewing?preview.entry?.action.unit:selected)) ?? stack.find(v=>v.type!=='LOG') ?? stack[0], id = u?.id;
     const marks = active ? campaignMapMarkers(s,cell.id) : [];
-    const legal = targetIds.has(cell.id);
+    const legal = !viewing && targetIds.has(cell.id);
     const used = planned.has(id);
-    const unavailable = draft && u && !stack.some(v=>draft.eligible.has(v.id));
+    const unavailable = !viewing && draft && u && !stack.some(v=>draft.eligible.has(v.id));
     const cls = ['hex',u?'has-unit':'',legal?'legal actionable':'',legal&&special?'special':'',picks.has(id)?'selected':'',
       r.has(cell.id)?'zr':'',b.has(cell.id)?'zb':'',inBattle.has(id)?'in-battle':'',used?'planned assigned':'',
       needed.has(id)?'engaged':'',unavailable?'unavailable':''].join(' ');
     const x = xOf(cell), y = yOf(cell);
-    return '<g class="'+cls+'" data-hex="'+cell.id+'" role="button" '+(unavailable?'aria-disabled="true" ':'')+'tabindex="'+(hit===cell.id&&!blocked?0:-1)+'" aria-label="'+
-      esc(cell.label+', '+terrainLabels[cell.terrain]+capital(cell)+(u?', '+stack.map(unitLabel).join(', '):'')+(marks.length?', '+marks.join(', '):'')+(legal?', legal destination':''))+'">'+
+    const label = esc(cell.label+', '+terrainLabels[cell.terrain]+capital(cell)+(u?', '+stack.map(unitLabel).join(', '):'')+
+      (marks.length?', '+marks.join(', '):'')+(legal?', legal destination':''));
+    const attributes = viewing?'':'data-hex="'+cell.id+'" role="button" '+(unavailable?'aria-disabled="true" ':'')+
+      'tabindex="'+(hit===cell.id&&!hidden?0:-1)+'" aria-label="'+label+'"';
+    return '<g class="'+cls+'" '+attributes+'>'+(viewing&&u?'<title>'+label+'</title>':'')+
       '<polygon class="tile" points="'+polygon(cell)+'"/>'+
       (marks.length?'<text class="campaign-map-mark" x="'+x+'" y="'+(y+51)+'">'+marks.join(' ')+'</text>':'')+
       (stack.length>1?'<rect class="stack-edge" x="'+(x-unitSize/2+5)+'" y="'+(y-unitSize/2-5)+'" width="'+unitSize+'" height="'+unitSize+'"/>':'')+
@@ -368,10 +376,12 @@ function drawBoard(s,board) {
         (u.landing?'<circle class="badge" cx="'+(x+35)+'" cy="'+(y-34)+'" r="11" fill="#f9d276"/>':''):
         legal?'<circle class="center-pip" cx="'+x+'" cy="'+y+'" r="7"/>':'')+'</g>';
   }).join('');
-  $('board').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+(board.cols*100)+' '+(board.rows*h)+'" aria-label="Kriegspiel map">'+maps+
+  const route = preview?.route?.path.map(id=>board.cells[id]).filter(Boolean);
+  const trace = route?.length>1?'<polyline class="replay-route" points="'+route.map(cell=>xOf(cell)+','+yOf(cell)).join(' ')+'"/>':'';
+  $(viewing?'replay-board':'board').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+(board.cols*100)+' '+(board.rows*h)+'" aria-label="Kriegspiel map">'+maps+
     (board.cols===20?'<path d="M1000 0V'+board.rows*h+'" stroke="#827552" stroke-width="2" stroke-dasharray="9 8" opacity=".7"/>':
       '<path d="M0 '+board.rows*h/2+'H1000" stroke="#827552" stroke-width="2" stroke-dasharray="9 8" opacity=".7"/>')+
-    movementTrails(s,board)+tiles+'<polyline id="route" class="route" points=""/></svg>';
+    (viewing?trace:movementTrails(s,board))+tiles+(viewing?'':'<polyline id="route" class="route" points=""/>')+'</svg>';
 }
 
 function fitBoard() {
@@ -662,6 +672,80 @@ function validateSetup() {
   return !errors.length;
 }
 
+let replayAt;
+
+function openFieldReport() {
+  const [report] = formatFieldReport(game).split('\n## Replay data\n');
+  const content = esc(report.replace(/^# Kriegspiel Field Report\n+/, ''))
+    .replace(/^(#{2,4}) (.+)$/gm,(_,level,title)=>
+      '<strong role="heading" aria-level="'+level.length+'" class="field-report-section level-'+level.length+'">'+title+'</strong>')
+    .replace(/\*\*([^\n]+?)\*\*/g,'<strong>$1</strong>');
+  $('field-report-body').innerHTML = '<div class="field-report-text">'+content+'</div>';
+  $('field-report-views').hidden = !game.record;
+  $('field-report-status').textContent = '';
+  $('replay-board').replaceChildren();
+  $('replay-step').max = game.record?.orders.length ?? 0;
+  $('replay-step').value = 0;
+  replayAt = null;
+  showReportView(false);
+  $('field-report').showModal();
+  $('field-report-body').scrollTop = 0;
+}
+
+function showReportView(replay) {
+  $('field-report-body').hidden = replay;
+  $('field-replay').hidden = !replay;
+  for (const button of $('field-report-views').querySelectorAll('button')) {
+    button.setAttribute('aria-pressed',String((button.dataset.do==='replay-view')===replay));
+  }
+  if (replay) {
+    replayAt ??= createReplay(game.record);
+    renderReplay(Number($('replay-step').value));
+  }
+}
+
+function renderReplay(step) {
+  const total = game.record.orders.length;
+  $('replay-step').value = step;
+  $('replay-position').textContent = step+' / '+total+' orders';
+  for (const button of $('field-replay').querySelectorAll('button')) {
+    button.disabled = ['replay-first','replay-prev'].includes(button.dataset.do) ? step===0 : step===total;
+  }
+  try {
+    const view = replayAt(step);
+    $('replay-order').textContent = view.entry
+      ? view.entry.notation+(view.entry.plain?' — '+view.entry.plain:'')
+      : 'Initial position before deployment.';
+    drawBoard(view.state,boardOf(view.state),view);
+  } catch (error) {
+    replayAt = createReplay(game.record);
+    $('replay-board').replaceChildren();
+    $('replay-order').textContent = 'Could not replay this order. '+error.message;
+  }
+}
+
+async function copyFieldReport() {
+  const report = formatFieldReport(game);
+  const status = $('field-report-status');
+  try {
+    await navigator.clipboard.writeText(report);
+  } catch {
+    const text = document.createElement('textarea');
+    text.value = report;
+    text.readOnly = true;
+    text.className = 'field-report-copy';
+    $('field-report').append(text);
+    text.select();
+    let copied = false;
+    try { copied = document.execCommand('copy'); }
+    catch { /* Clipboard access can be blocked on a LAN address. */ }
+    finally { text.remove(); }
+    $('field-report').querySelector('[data-do="copy-report"]').focus();
+    if (!copied) { status.textContent = 'Clipboard unavailable. Use Download report.'; return; }
+  }
+  status.textContent = 'Report copied.';
+}
+
 function openSettings() {
   $('trail-scope').innerHTML = options(trailScopes,preferences.showTrails?preferences.trailScope:'off');
   $('preference-pace').innerHTML = options({fast:'Fast · 0.18 seconds',watch:'Watch · 0.75 seconds',slow:'Slow · 1.5 seconds'},preferences.aiPace);
@@ -697,8 +781,8 @@ function openGameRules(defaultsMode = false, reset = false) {
     return '<details class="rule-group"><summary>§§'+ref+' · '+title+(count?' · '+count+' enabled':'')+'</summary>'+
       fields.map(([key,rule,label,description,values])=>{
         const detail = '<span><b>'+label+' · §'+rule+'</b><small>'+description+'</small></span>';
-        const current = settings.optional?.[key];
-        return values ? '<label class="rules-select">'+detail+'<select data-rule="'+key+'">'+options({'':'Off',...values},current??'')+'</select></label>'
+        const current = settings.optional?.[key] ?? (key==='initiative'?'turn':undefined);
+        return values ? '<label class="rules-select">'+detail+'<select data-rule="'+key+'">'+options(key==='initiative'?values:{'':'Off',...values},current??'')+'</select></label>'
           : '<label class="rule-check"><input type="checkbox" data-rule="'+key+'" '+(current?'checked':'')+'>'+detail+'</label>';
       }).join('')+'</details>';
   }).join('');
@@ -740,7 +824,7 @@ async function startGame() {
   }
 }
 
-const simpleActions = new Set(['undo','recall-deployment','preview-deploy','auto-deploy','deploy-ready','reset-move','end-move','resolve-deadlock','clear-plan','auto-plan','start-battles','end-withdraw','end-battle','continue-battle']);
+const simpleActions = new Set(['undo','recall-deployment','preview-deploy','auto-deploy','deploy-ready','end-move','resolve-deadlock','clear-plan','auto-plan','start-battles','end-withdraw','end-battle','continue-battle']);
 document.addEventListener('click',async event=>{
   const target = event.target.closest('[data-do]');
   if (target) {
@@ -794,6 +878,27 @@ document.addEventListener('click',async event=>{
     else if (cmd==='take-loss') dispatch({type:'take-loss',losses:Object.entries(losses).map(([id,kind])=>({id,kind}))});
     else if (cmd==='hold-defenders' || cmd==='order-retreat') dispatch({type:'retreat-choice',retreat:cmd==='order-retreat'});
     else if (cmd==='retreat-trapped') dispatch({type:'retreat',unit:selected});
+    else if (cmd==='reset-unit-move') dispatch({type:cmd,unit:selected});
+    else if (cmd==='confirm-reset-move' && interactive()) {
+      $('reset-movement').returnValue = '';
+      $('reset-movement').showModal();
+    }
+    else if (cmd==='view-report' && game?.phase==='over') openFieldReport();
+    else if (cmd==='report-view') showReportView(false);
+    else if (cmd==='replay-view' && game?.record) showReportView(true);
+    else if (['replay-first','replay-prev','replay-next','replay-last'].includes(cmd) && replayAt) {
+      const step = Number($('replay-step').value), end = game.record.orders.length;
+      renderReplay({'replay-first':0,'replay-prev':Math.max(0,step-1),'replay-next':Math.min(end,step+1),'replay-last':end}[cmd]);
+    }
+    else if (cmd==='copy-report' && game?.phase==='over') await copyFieldReport();
+    else if (cmd==='export-report' && game?.phase==='over') {
+      const url = URL.createObjectURL(new Blob([formatFieldReport(game)],{type:'text/markdown;charset=utf-8'}));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'kriegspiel-field-report.md';
+      link.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
     else if (cmd==='copy-invite') {
       const field = $('invite-url');
       try {
@@ -900,6 +1005,15 @@ document.addEventListener('submit',async event=>{
   finally { pending = false; render(); }
 });
 
+$('replay-step').addEventListener('change',event=>{
+  if (replayAt) renderReplay(Number(event.target.value));
+});
+$('field-report').addEventListener('close',()=>{ replayAt = null; });
+
+$('reset-movement').addEventListener('close',()=>{
+  if ($('reset-movement').returnValue==='reset' && interactive()) dispatch({type:'reset-move'});
+});
+
 $('new-table').addEventListener('close',()=>{
   if ($('new-table').returnValue!=='reset') return;
   clearInterval(pollTimer);
@@ -907,9 +1021,8 @@ $('new-table').addEventListener('close',()=>{
   computerTimer = null;
   computerError = false;
   computerDeadlock = false;
-  if (game) choice = { ...choice,...ruleDefaults,mode:game.mode,map:Object.hasOwn(mapsAvailable,game.map)?game.map:'classic',layout:game.layout==='parallel'?'standard':game.layout,
-    human:game.human ?? 'R',difficulty:game.difficulty ?? 'standard',
-    rotations:Object.fromEntries(boardOf(game).halves.map(half=>[half.side,half.rotate?'rotated':'upright'])) };
+  if (game) choice = { ...choice,...ruleDefaults,mode:game.mode,
+    human:game.human ?? 'R',difficulty:game.difficulty ?? 'standard' };
   game = null;
   undoPoint = null;
   lanUndo = false;
