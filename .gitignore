@@ -1,0 +1,17 @@
+# Full local game with separately supplied art
+/Kriegspiel/
+
+# Separately supplied artwork retained for local use
+/Kriegspiel-TTS-Assets/Boards/Alternate-*.png
+/Kriegspiel-TTS-Assets/Boards/Color-*.png
+/Kriegspiel-TTS-Assets/Cards/Defense-Back.png
+/Kriegspiel-TTS-Assets/Cards/Defense-Sheet-3x2.png
+/Kriegspiel-TTS-Assets/Cards/Faces/Defense-*.png
+!/Kriegspiel-TTS-Assets/Cards/Faces/Defense-Classic-*.png
+
+node_modules/
+.env
+.env.*
+*.log
+Thumbs.db
+.DS_Store

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#222822">
+  <meta name="description" content="Play Avalon Hill’s Kriegspiel in your browser. Solitaire, hot-seat, or two-player LAN.">
+  <title>Kriegspiel | Field Table</title>
+  <link rel="icon" href="/assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.mjs"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="/" aria-label="Kriegspiel home"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+<path d="M24 2 43 12v23L24 46 5 35V12Z" fill="#d5b46c"/>
+<path d="M24 6 39 14v19l-15 9-15-9V14Z" fill="#252b25"/>
+<path d="M17 13v22m0-9 15-13M20 23l13 12" fill="none" stroke="#e9d3a3" stroke-width="3" stroke-linecap="square"/>
+</svg><span>KRIEGSPIEL<small>FIELD TABLE</small></span></a>
+    <div class="edition">AVALON HILL <i></i> 1970 <span> / </span> FIELD TABLE</div>
+    <nav aria-label="Table menu">
+      <button class="header-button" data-do="chart">Battle chart</button>
+      <button class="header-button" data-do="rule">Rulebook</button>
+      <button class="header-button" data-do="help">Field manual</button>
+      <button class="header-button" data-do="settings">Settings</button>
+      <button class="header-button" data-do="new">New table <span aria-hidden="true">↗</span></button>
+    </nav>
+  </header>
+  <main aria-label="Kriegspiel game">
+    <div id="table" class="table">
+      <section class="map-panel" aria-label="Game board">
+        <div class="map-toolbar">
+          <div class="map-caption"><span class="grid-mark" aria-hidden="true">⌗</span><div><strong id="map-name">Classic boards</strong><small id="map-status">STANDARD FRONT</small></div></div>
+          <div class="map-tools">
+            <button data-do="zoc" id="zoc" aria-pressed="false" title="Show zones of control">ZOC</button>
+            <button data-do="trails" id="trails" aria-pressed="true" title="Toggle movement trails">Trails</button>
+            <label id="ai-pace-control" class="ai-pace-control" title="Delay between computer orders" hidden><span>AI pace</span><select id="ai-pace" aria-label="AI pace"><option value="fast">Fast</option><option value="watch">Watch</option><option value="slow">Slow</option></select></label>
+            <span class="divider"></span>
+            <button data-do="zoom-out" aria-label="Zoom out">−</button><button data-do="fit" aria-label="Fit the entire board" title="Fit board">Fit</button><button data-do="zoom-in" aria-label="Zoom in">+</button>
+          </div>
+        </div>
+        <div class="map-frame">
+          <div class="viewport" id="viewport"><div id="board" class="board" aria-label="Hex map"></div></div>
+          <div id="veil" class="veil" hidden><span class="eyebrow">PRIVATE COMMAND</span><h2 id="handoff-title"></h2><p>Pass the screen to this player.</p><button type="button" class="primary" data-do="handoff">Reveal my command</button></div>
+        </div>
+        <div class="map-foot">
+          <div id="hex-readout">Select a division to highlight its legal destinations.</div>
+          <span id="zoom-level" title="Wheel to zoom · Middle-drag to pan">FIT</span>
+          <div id="scoreboard" class="scoreboard" aria-label="Field strength"></div>
+        </div>
+      </section>
+      <aside class="command" aria-label="Command desk">
+        <div class="command-head"><span class="eyebrow"><span class="signal"></span> COMMAND DESK</span><div class="command-controls"><button type="button" id="undo" class="secondary" data-do="undo" title="Undo the last action before a reveal or handoff (Ctrl+Z)" disabled>Undo</button><button type="button" id="mode" class="tag" data-do="game-rules" title="View table rules">LOCAL TABLE</button></div></div>
+        <div id="phase-track" class="phase-track"></div>
+        <div id="notice" role="status" class="notice" hidden></div>
+        <div id="command-body" class="command-body"></div>
+        <div id="battle-log" class="battle-log"></div>
+      </aside>
+    </div>
+    <footer><span>KRIEGSPIEL FIELD TABLE</span><span>A local adaptation of the 1970 game by Thomas N. Shaw</span><button data-do="help">Rules &amp; credits ↗</button></footer>
+  </main>
+  <dialog id="manual" aria-label="Field manual">
+    <div class="manual-head"><div><p class="eyebrow">REFERENCE / GAME I</p><h2>Field manual</h2></div><form method="dialog"><button aria-label="Close field manual">✕</button></form></div>
+    <div class="manual-content">
+      <button class="secondary" data-do="rule">Read the full rulebook</button>
+      <details open><summary>Play a turn</summary><ol>
+        <li>Deploy 14 Red and 13 Blue divisions on their own map halves. Remaining units become reserves.</li>
+        <li>Initiative is randomized every full turn. Starting on turn 4, one reserve per side per turn becomes available in that side’s capital. An enemy in any capital hex blocks arrival.</li>
+        <li>Move any divisions up to their movement allowance. One ground unit fits in a hex. A unit must stop when entering an enemy zone of control (ZOC) and must disengage before moving between enemy zones.</li>
+        <li>Every engaged division must take part in one battle. All attackers in a battle must border all its defenders, and the defending hexes must border each other. Assign battles or use the suggested plan.</li>
+        <li>Choose tactics in secret. Read the combat result, pay losses, resolve any retreats, and then advance. The second side follows the same sequence.</li>
+      </ol></details>
+      <details><summary>Terrain, drops, and invasions</summary>
+        <p>Armored and combined-arms units cannot enter woods. Only SOF can enter mountains. Sea is reserved for SOF in transit during an invasion. Outer half-hexes are out of play. Full hexes on the join are playable after deployment.</p>
+        <p>Opt into terrain effects at setup to use movement costs and defense bonuses. Woods and mountains cost 2 MF. Entering a river costs 3 MF, or 1 along the same river. A connected road costs ⅓ MF. Cities, rivers, woods and mountains double defense. Retreats and advances use 1 MF per hex, with terrain restrictions still in force.</p>
+        <p>Airborne divisions starting in a friendly city can drop into a legal vacant hex outside enemy ZOC. SOF starting in a coastal city can invade a beach. They retain their movement allowance after a free landing. An occupied beach must be attacked and secured by advance.</p>
+      </details>
+      <details><summary>Combat and victory</summary>
+        <p>Combat odds round down to the defender’s advantage and stay between 1:3 and 3:1. AE and DE eliminate every participating unit on that side. A4, A6 and D4 require the indicated minimum CF. Game I pays with whole divisions. The optional §23.1 procedure also lets you flip a full-strength division to half CF rounded down and one less MF.</p>
+        <p>The attacker can order all surviving defenders to retreat or leave them in place. The attacker chooses each retreat route. A required retreat with no legal route eliminates the unit.</p>
+        <p>The optional mandatory-retreat procedure makes the defense card's retreat compulsory and allows the attacker to withdraw their own survivors. Advances follow retreats and withdrawals.</p>
+        <p>If an inherited engagement deadlock survives movement, the app can resolve the largest legal set of contacts. The battle planner and field report list any divisions exempted by this table ruling.</p>
+        <p>Victory is checked after both sides act. If either side has less than 20 CF on the board, the stronger side wins. A side also wins by capturing and occupying every enemy city. Capture requires holding the hex through an opposing combat phase.</p>
+        <button class="secondary" data-do="chart">Open full battle chart</button>
+      </details>
+      <details><summary>Solitaire, computer, hot-seat, and LAN</summary>
+        <p>In solitaire you command both sides. Manual deployment randomizes the next side. The supplied solitaire table rolls the defensive tactic each battle. You can choose or roll the offensive tactic.</p>
+        <p>Vs computer gives you one faction. The local opponent chooses moves and tactics using the same legal actions as a human and has no access to your concealed deployment or tactic. Both sides choose tactics as in hot-seat play.</p>
+        <p>Hot-seat hands the screen to the other player for private deployment and tactic choices. Each player uses their own browser in LAN play. Create a room on the host and share its invite with your opponent on the same network. Keep the host running.</p>
+      </details>
+      <details><summary>Sources and scope</summary>
+        <p>Game I and the core Game III solitaire procedure follow Christian Holm Christensen’s 2023 re-typeset edition of Avalon Hill’s Kriegspiel. The original game was designed by Thomas N. Shaw. Map and counter art from the re-typeset edition is credited to Christian Holm Christensen under <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.</p>
+        <p>Terrain effects, fixed or full deployment, and step loss by factors are selectable Game II options. Additional Game II modules are grouped by section in game setup. Game IV uses a separate scenario.</p>
+      </details>
+    </div>
+  </dialog>
+  <dialog id="game-setup" aria-labelledby="game-setup-title">
+    <div class="manual-head">
+      <div><p class="eyebrow">TABLE AGREEMENT</p><h2 id="game-setup-title">Game rules</h2></div>
+      <form method="dialog"><button aria-label="Close game rules">✕</button></form>
+    </div>
+    <p id="setup-summary"></p>
+    <form id="rules-form">
+      <div class="setup-rules">
+        <section class="rule-section core-section">
+          <p class="eyebrow">01 / BASE GAME</p><h3>Game I</h3>
+          <p>Each side completes movement before combat. Victory is checked after both sides act. A side can win on field strength or by capturing and still occupying every enemy city.</p>
+          <button class="text-button" type="button" data-do="rule" data-page="5">Setup and victory · §§2–3 ↗</button>
+        </section>
+        <section class="rule-section">
+          <p class="eyebrow">02 / OPTIONAL GAME II RULES</p><h3>Terrain and forces</h3>
+          <fieldset id="optional-rules" class="rules-fields">
+            <label class="rule-check"><input type="checkbox" id="terrain-choice"><span><b>Terrain effects</b><small>Apply road and river costs, slow woods and mountains, and double defense in protective terrain. Basic entry restrictions always apply.</small></span></label>
+            <label class="rules-select"><span><b>Initial deployment</b><small>Choose divisions in Game I, use fixed starting corps, or start with all divisions and no reserves.</small></span><select id="setup-choice"></select></label>
+            <label class="rules-select"><span><b>Casualties</b><small>Game I pays CF losses with whole divisions. Step losses can also reduce a full-strength division to its reverse side.</small></span><select id="loss-rule"></select></label>
+          </fieldset>
+        </section>
+        <section class="rule-section">
+          <p class="eyebrow">03 / TABLE CONVENTIONS</p><h3>Retreats and edge cases</h3>
+          <fieldset id="table-conventions" class="rules-fields">
+            <label class="rules-select"><span><b>Retreat procedure</b><small>Use the Game I option to order or waive retreats. The optional variant requires retreat cards to be followed and lets attackers withdraw too.</small></span><select id="retreat-rule"></select></label>
+          </fieldset>
+          <p>The attacker chooses defending divisions’ retreat routes under either procedure. An inherited combat deadlock requires approval before any contact can be exempted.</p>
+        </section>
+        <section class="rule-section"><p class="eyebrow">04 / GAME II MODULES</p><h3>Advanced rules</h3><p>Each option starts off. Open a section to see its rules.</p><fieldset class="rules-fields" id="advanced-rules"></fieldset></section>
+        <section id="setup-faction" class="rule-section" hidden>
+          <p class="eyebrow">05 / COMMAND</p><h3>Choose your faction</h3>
+          <label class="rules-select"><span><b>Your faction</b><small>The computer commands the other army.</small></span><select id="human-side"></select></label>
+          <label class="rules-select"><span><b>Computer difficulty</b><small>Veteran evaluates likely battle outcomes before committing to contact.</small></span><select id="difficulty"></select></label>
+        </section>
+      </div>
+      <p id="setup-errors" role="status" class="notice" hidden></p>
+      <div class="action-row setup-actions"><button type="button" class="secondary" data-do="close-game-rules" id="setup-cancel">Cancel</button><button type="button" class="secondary" data-do="reset-rules" id="reset-rules" hidden>Use Game I defaults</button><button type="submit" class="primary" id="setup-apply">Start game</button></div>
+    </form>
+  </dialog>
+  <dialog id="preferences" aria-label="Table settings">
+    <div class="manual-head"><div><p class="eyebrow">THIS BROWSER</p><h2>Table settings</h2></div><form method="dialog"><button aria-label="Close settings">✕</button></form></div>
+    <form id="preferences-form" class="rules-fields">
+      <label class="rules-select"><span><b>Movement trails</b><small>Show the latest route or keep each route for the chosen period.</small></span><select id="trail-scope"></select></label>
+      <label class="rules-select"><span><b>Computer pace</b><small>Time between computer orders.</small></span><select id="preference-pace"></select></label>
+      <label class="rules-select"><span><b>Red accents</b><small>Red-side highlights, badges and arrows.</small></span><input type="color" id="red-color"></label>
+      <label class="rules-select"><span><b>Blue accents</b><small>Blue-side highlights, badges and arrows.</small></span><input type="color" id="blue-color"></label>
+      <label class="rules-select"><span><b>Map contrast</b><small>Apply a display filter to the board artwork.</small></span><select id="map-tone"></select></label>
+      <button type="button" class="secondary" data-do="rule-defaults">Default game rules</button>
+      <div class="action-row"><button type="button" class="secondary" data-do="reset-settings">Restore defaults</button><button class="primary" type="submit">Done</button></div>
+    </form>
+  </dialog>
+  <dialog id="combat-chart" aria-label="Battle chart">
+    <div class="manual-head"><div><p class="eyebrow" id="chart-edition">COMBAT RESOLUTION / TABLE 4</p><h2>Battle chart</h2></div><form method="dialog"><button aria-label="Close battle chart">✕</button></form></div>
+    <p>Choose the odds group and offensive tactic across the top, then cross-reference the defensive tactic on the left.</p>
+    <div id="full-crt"></div>
+    <dl class="chart-key"><div><dt>AE / DE</dt><dd>All attackers / defenders in the battle are eliminated.</dd></div>
+    <div><dt>A4 / A6</dt><dd>Attacker loses at least 4 / 6 CF.</dd></div>
+    <div><dt>D4</dt><dd>Defender loses at least 4 CF.</dd></div><div><dt>—</dt><dd>Neither side loses CF. Tactic retreats and advances still apply.</dd></div></dl>
+    <p>On Table 11, AS and DS cost one step. X exchanges losses. R and V give retreat and advance distances.</p>
+    <p>Set casualties to <strong>Step loss by factors</strong> at setup to take reductions as well as eliminations.</p>
+  </dialog>
+  <dialog id="rulebook" aria-label="Kriegspiel rulebook">
+    <div class="manual-head"><div><p class="eyebrow">ORIGINAL REFERENCE / 2023 RE-TYPESET EDITION</p><h2>Kriegspiel rulebook</h2></div><form method="dialog"><button aria-label="Close rulebook">✕</button></form></div>
+    <div class="reader-nav">
+      <label>Jump to <select id="reader-section" aria-label="Rulebook section"></select></label>
+      <div class="reader-pages">
+        <button type="button" id="reader-prev" aria-label="Previous page">‹</button>
+        <label>Page <input id="reader-number" type="number" min="1" max="47" value="3" aria-label="Rulebook page"> / 47</label>
+        <button type="button" id="reader-next" aria-label="Next page">›</button>
+      </div>
+      <a href="/rules/KriegSpielUS.pdf" target="_blank" rel="noopener">Open PDF ↗</a>
+    </div>
+    <div class="reader-scroll" id="reader-scroll" tabindex="0" aria-label="Rulebook page image">
+      <img id="reader-image" width="1020" height="1320" alt="">
+    </div>
+  </dialog>
+  <dialog id="new-table" aria-label="Start a new table">
+    <div class="manual-head"><div><p class="eyebrow">TABLE RESET</p><h2>Start a new table?</h2></div></div>
+    <p>Your current table will close in this browser.</p>
+    <form method="dialog" class="action-row"><button>Cancel</button><button value="reset" class="danger">Close table</button></form>
+  </dialog>
+</body>
+</html>
+
