@@ -1,6 +1,6 @@
 # Publish to GitHub
 
-Create an empty public repository on GitHub, then copy its HTTPS URL. Run these commands from the parent folder containing both Kriegspiel-Public and Kriegspiel-TTS-Assets. The local repository already has its initial commit.
+Create an empty public repository on GitHub, then copy its HTTPS URL. Run these commands from the parent folder containing both Kriegspiel and Kriegspiel-TTS-Assets. The local repository already has its initial commit.
 
 ```sh
 git remote add origin https://github.com/OWNER/REPO.git

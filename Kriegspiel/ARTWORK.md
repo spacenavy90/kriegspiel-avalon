@@ -6,4 +6,4 @@ The classic boards, counters, and rulebook are from Christian Holm Christensenâ€
 
 The rulebook PDF, page previews, classic board images and counter images are distributed under [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/). The PDF is unchanged. Page previews were rendered to WebP. Board and counter artwork was cropped, resized, and converted to WebP. The classic boards were also tinted and digitized as hex terrain, roads, and waterways.
 
-The public package includes the classic board art and uses browser-drawn symbols for defensive tactics. The separately supplied alternate maps and vintage card scans are local play materials.
+The full edition also includes the separately supplied alternate maps and vintage card scans, hosted with permission. The CC BY-SA 4.0 notice above applies to Christensenâ€™s materials.

@@ -51,7 +51,7 @@ The app implements Game I and the core Game III solitaire procedure from Christi
 | §§19–22 | Nuclear weapons and ABM, supply, POWs, and peace talks |
 | §§23–26 | Step losses, alternate CRT, hold ground and refit, drop and invasion limits, fixed initiative, stacking, strategic movement, and command |
 
-For §12, the setup offers a draw, objective points, or the original-border territory count at a selected turn limit. The app uses named roster packs for §11.5. Game IV is a separate scenario outside this adaptation.
+For §12, the setup offers a draw, objective points, or the original-border territory count at a selected turn limit. The app uses named roster packs for §11.5. Where alternate maps lack matching installation labels or the printed winter border, the app uses equivalent local sites and terrain. Game IV is a separate scenario outside this adaptation.
 
 | Reference | Behavior checked |
 | --- | --- |
@@ -73,8 +73,8 @@ The printed optional combat table in §23.2 assigns retreats to the opposing fac
 
 **Victory.** The scoreboard counts enemy cities that you occupy and have held through an opposing half-turn. Adjacent city hexes count as one city. At the end of a full turn, securing every enemy city wins independently of the 20-CF threshold.
 
-This source edition includes the classic map, both map joins, and independent rotation of each half. Defense choices use symbols and labels.
+The three map sets are the classic boards from `materialsUS.pdf`, the color redraw from `Kriegspiel_Map_Boards_additional.pdf`, and Aa/Ba from `Kriegspiel_Boards_additional_01.pdf`. Terrain and transport links were digitized from the supplied artwork. The paired city hexes serve as capitals on Aa/Ba.
 
-The rulebook and classic map and counter art come from [Christian Holm Christensen’s Kriegspiel project](https://gitlab.com/wargames_tex/kriegspiel_tex) under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The classic maps and counters were cropped, resized, and converted for browser play. The maps were also tinted and digitized for the rules engine. Rulebook previews are rendered from the supplied PDF.
+The rulebook and classic map and counter art come from [Christian Holm Christensen’s Kriegspiel project](https://gitlab.com/wargames_tex/kriegspiel_tex) under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The classic maps and counters were cropped, resized, and converted for browser play. The maps were also tinted and digitized for the rules engine. Rulebook previews are rendered from the supplied PDF. The local bundle also uses cropped vintage card scans.
 
-Run `node check.mjs` for the core and Game II engine checks. See [GitHub publishing steps](PUBLISH.md) and [artwork credits](ARTWORK.md).
+Run `node check.mjs` for the core and Game II engine checks.
